@@ -20,6 +20,10 @@ public enum IdiomasEnum {
         this.idiomas = idiomas;
     }
 
+    public String getExpresionEnEspanol() {
+        return expresionEnEspanol;
+    }
+
     public static IdiomasEnum fromString(String text) {
         for (IdiomasEnum idiomasEnum : IdiomasEnum.values()) {
             if (idiomasEnum.idiomas.equalsIgnoreCase(text)) {

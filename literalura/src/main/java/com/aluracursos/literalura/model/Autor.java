@@ -33,6 +33,15 @@ public class Autor {
         this.anioFallecimiento = datosAutor.anioFallecimiento();
     }
 
+    // Constructor personalizado con lista de libros
+    public Autor(DatosAutor datosAutor, List<Libro> libros) {
+        this(datosAutor); // Llama al otro constructor para inicializar los datos del autor
+        this.libros = libros;
+        for (Libro libro : libros) {
+            libro.setAutor(this); // Establece este autor como el autor de cada libro
+        }
+    }
+
     //Getters
     public String getNombreAutor() {
         return nombreAutor;

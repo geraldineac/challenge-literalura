@@ -8,8 +8,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface LibroRepository extends JpaRepository<Libro, Long> {
+
+    Optional<Libro> findByTituloContainsIgnoreCase(String titulo);
 
     List<Libro> findByIdiomas(IdiomasEnum idiomasEnum);
 

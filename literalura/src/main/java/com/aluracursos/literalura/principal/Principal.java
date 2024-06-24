@@ -38,6 +38,7 @@ public class Principal {
         var opcion = -1;
         while (opcion != 0) {
             var menu = """
+                    \n *** SELECCIONE UNA OPCIÓN DEL MENU *** \n
                     1 - Búsqueda de libro por título 
                     2 - Lista de todos los libros
                     3 - Lista de autores
@@ -47,46 +48,52 @@ public class Principal {
                     0 - Salir
                     """;
             System.out.println(menu);
-            opcion = teclado.nextInt();
-            teclado.nextLine();
+            try {
+                opcion = teclado.nextInt();
+                teclado.nextLine();
 
-            switch (opcion) {
-                case 1:
-                    System.out.println(" Búsqueda de libro por título ");
-                    buscarLibroWeb();
-                    break;
-                case 2:
-                    System.out.println(" Lista de todos los libros ");
-                    mostrarLibrosBuscados();
-                    break;
-                case 3:
-                    System.out.println(" Lista de todos los autores");
-                    listaDeAutores();
-                    break;
-                case 4:
-                    System.out.println(" Buscar autor vivos en determinado año");
-                    autoresPorAnio();
-                    break;
-                case 5:
-                    System.out.println(" Buscar libros por idioma ");
-                    buscarLibroPorIdioma();
-                    break;
-                case 0:
-                    System.out.println("Cerrando la aplicación...");
-                    break;
-                default:
-                    System.out.println("Opción inválida");
+                switch (opcion) {
+                    case 1:
+                        System.out.println("\uD83D\uDCD6 Búsqueda de libro por título ");
+                        buscarLibroWeb();
+                        break;
+                    case 2:
+                        System.out.println("\uD83D\uDCD6 Lista de todos los libros ");
+                        mostrarLibrosBuscados();
+                        break;
+                    case 3:
+                        System.out.println("\uD83D\uDCD6 Lista de todos los autores \n");
+                        listaDeAutores();
+                        break;
+                    case 4:
+                        System.out.println("\uD83D\uDCD6 Buscar autor vivos en determinado año");
+                        autoresPorAnio();
+                        break;
+                    case 5:
+                        System.out.println("\uD83D\uDCD6 Buscar libros por idioma ");
+                        buscarLibroPorIdioma();
+                        break;
+                    case 0:
+                        System.out.println("Cerrando la aplicación...");
+                        break;
+                    default:
+                        System.out.println("Opción inválida, elija otra opción");
+                }
+            } catch(InputMismatchException e){
+                System.out.println("Entrada no válida. Por favor, ingrese un número entre 1 y 5.");
+                teclado.nextLine();
             }
         }
+
 
     }
 
 
     private DatosLibro getDatosLibros() {
-        System.out.println("Escribe el nombre de la serie que deseas buscar");
+        System.out.println("\n *** Escribe el nombre del libro que deseas buscar *** \n");
         var nombreLibro = teclado.nextLine();
         var json = consumoAPI.obtenerDatos(URL_BASE + "?search=" + nombreLibro.replace(" ", "%20"));
-        System.out.println(json);
+        //System.out.println(json);
 
         Datos datos = conversor.obtenerDatos(json, Datos.class);
         List<DatosLibro> libros = datos.resultados();
@@ -102,10 +109,35 @@ public class Principal {
     }
     private void buscarLibroWeb() {
         DatosLibro datos = getDatosLibros();
-        Libro libro = new Libro(datos);
-        repositorio.save(libro);
-        //datosLibros.add(datos);
-        System.out.println("datos "+datos);
+        if(datos != null) {
+            Optional<Libro> tituloYaExiste = repositorio.findByTituloContainsIgnoreCase(datos.titulo());
+
+            if(tituloYaExiste.isPresent()){
+                System.out.println("\n *** El libro ya existe en la base de datos ***\n");
+            } else{
+                Libro libro = new Libro(datos);
+                repositorio.save(libro);
+                System.out.println("\n *** Libro agregado a base de datos ***\n");
+                //datosLibros.add(datos);
+                System.out.println(" *** *** *** *** \n");
+                System.out.printf("""
+                    Titulo: %s
+                    Idioma: %s
+                    Numero de descargas: %s
+                    Autor: %s ( %s - %s ) \n
+                    """, datos.titulo(), IdiomasEnum.fromString(datos.idiomas().get(0)).getExpresionEnEspanol(), datos.numeroDeDescargas(),
+                        datos.autor().get(0).nombreAutor(),
+                        (datos.autor().get(0).anioNacimiento() != null ) ? datos.autor().get(0).anioNacimiento(): "fecha de nacimiento desconocida",
+                        (datos.autor().get(0).anioFallecimiento() != null ) ? datos.autor().get(0).anioFallecimiento() : " " );
+                System.out.println(" *** *** *** *** \n");
+
+            }
+
+        } else {
+            System.out.println("\n *** No se encontró el libro o el autor que intentas buscar *** \n");
+        }
+
+       // System.out.println("datos "+datos);
 
     }
 
@@ -117,54 +149,72 @@ public class Principal {
 //        series = datosSeries.stream()
 //                .map(d -> new Serie(d))
 //                .collect(Collectors.toList());
-
-        libros.stream()
-                //.sorted(Comparator.comparing(Serie::getGenero))
-                .forEach(System.out::println);
+            if (libros.isEmpty()) {
+                System.out.println("\n *** No hay libros en la base de datos *** \n");
+            } else {
+                System.out.println("\n *** *** *** *** ");
+                libros.stream()
+                        .sorted(Comparator.comparing(Libro::getTitulo))
+                        .forEach(l -> System.out.printf("""
+                                Libro: %s
+                                Idioma: %s
+                                Numero de descargas: %s
+                                Autor: %s \n
+                                """, l.getTitulo(), l.getIdiomas().getExpresionEnEspanol(), l.getNumeroDeDescargas(), l.getAutor().getNombreAutor()));
+                System.out.println(" *** *** *** *** \n");
+            }
 
     }
 
     private void buscarLibroPorIdioma(){
 
-        System.out.println("Seleccione el idioma del libro que desea buscar:");
+        System.out.println("\n *** Seleccione el idioma del libro que desea buscar *** \n");
         System.out.println("1. Español");
         System.out.println("2. Inglés");
         System.out.println("3. Portugués");
         System.out.println("4. Francés");
         System.out.println("5. Italiano");
-        System.out.print("Ingrese el número de la opción deseada: ");
+        System.out.print("\n  Ingrese el número de la opción deseada:  ");
+        try {
+            int opcion = Integer.parseInt(teclado.nextLine());
+            IdiomasEnum idiomaSeleccionado;
 
-        int opcion = Integer.parseInt(teclado.nextLine());
-        IdiomasEnum idiomaSeleccionado;
+            switch (opcion) {
+                case 1:
+                    idiomaSeleccionado = IdiomasEnum.ES;
+                    break;
+                case 2:
+                    idiomaSeleccionado = IdiomasEnum.EN;
+                    break;
+                case 3:
+                    idiomaSeleccionado = IdiomasEnum.PT;
+                    break;
+                case 4:
+                    idiomaSeleccionado = IdiomasEnum.FR;
+                    break;
+                case 5:
+                    idiomaSeleccionado = IdiomasEnum.IT;
+                    break;
+                default:
+                    System.out.println("Opción no válida. Se utilizará español por defecto.");
+                    idiomaSeleccionado = IdiomasEnum.ES;
+            }
 
-        switch (opcion) {
-            case 1:
-                idiomaSeleccionado = IdiomasEnum.ES;
-                break;
-            case 2:
-                idiomaSeleccionado = IdiomasEnum.EN;
-                break;
-            case 3:
-                idiomaSeleccionado = IdiomasEnum.PT;
-                break;
-            case 4:
-                idiomaSeleccionado = IdiomasEnum.FR;
-                break;
-            case 5:
-                idiomaSeleccionado = IdiomasEnum.IT;
-                break;
-            default:
-                System.out.println("Opción no válida. Se utilizará español por defecto.");
-                idiomaSeleccionado = IdiomasEnum.ES;
-        }
+            List<Libro> librosPorIdioma = repositorio.findByIdiomas(idiomaSeleccionado);
 
-        List<Libro> librosPorIdioma = repositorio.findByIdiomas(idiomaSeleccionado);
-
-        if (librosPorIdioma.isEmpty()) {
-            System.out.println("No se encontraron libros en el idioma seleccionado: " + idiomaSeleccionado.name());
-        } else {
-            System.out.println("Libros encontrados en " + idiomaSeleccionado.name() + ":");
-            librosPorIdioma.forEach(libro -> System.out.println("- " + libro.getTitulo()));
+            if (librosPorIdioma.isEmpty()) {
+                System.out.println("\n *** No se encontraron libros en el idioma seleccionado: " + idiomaSeleccionado.name() + " *** \n");
+            } else {
+                //idiomaSeleccionado.name()
+                System.out.println("\n *** Libros encontrados en (" + idiomaSeleccionado.getExpresionEnEspanol() + ") *** \n");
+                librosPorIdioma.forEach(libro -> System.out.printf("""
+                                Titulo: %s
+                                Autor: %s \n
+                                """,
+                        libro.getTitulo(), libro.getAutor().getNombreAutor()));
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("Entrada no válida. Por favor, ingrese un número entre 1 y 5.");
         }
     }
 
@@ -172,10 +222,19 @@ public class Principal {
         autor = repositorio.findAllUniqueAutores();
 
         if (autor.isEmpty()) {
-            System.out.println("No se encontraron autores en la base de datos.");
+            System.out.println("\n *** No se encontraron autores en la base de datos *** \n");
         } else {
-            System.out.println("Lista de autores:");
-            autor.forEach(autor -> System.out.println("- " + autor.toString()));
+            autor.forEach(autor -> {
+                String titulos = autor.getLibros().stream()
+                            .map(Libro::getTitulo)
+                            .collect(Collectors.joining(", "));
+                        System.out.printf(
+                                """                                      
+                                Autor: %s ( %s - %s )
+                                Titulos: %s \n
+                                """, autor.getNombreAutor(),
+                                autor.getAnioNacimiento(), autor.getAnioFallecimiento(), titulos);
+            });
         }
 //        List<Libro> libros = repositorio.findAll();
 //
@@ -194,21 +253,21 @@ public class Principal {
 //        }
     }
     private void autoresPorAnio(){
-        System.out.print("Ingrese el año para buscar autores vivos: ");
+        System.out.print("\n *** Ingrese el año para buscar autores vivos:  *** \n");
         int anio = Integer.parseInt(teclado.nextLine());
         autor = repositorio.findByYearAutores(anio);
 
         if(autor.isEmpty()){
-            System.out.println("No se encontraron autores vivos en el año " + anio);
+            System.out.println("\n *** No se encontraron autores vivos en el año " + anio + " *** \n");
         }else{
-            System.out.println("Autores vivos en el año " + anio + ":");
+            System.out.println("\n *** Autores vivos en el año " + anio + " *** \n");
             autor.forEach(autor -> {
                 String estadoVital = autor.getAnioFallecimiento() == null ?
                         "Aún vivo" :
                         "Fallecido en " + autor.getAnioFallecimiento();
                 System.out.println("- " + autor.getNombreAutor() +
                         " (Nacido en: " + autor.getAnioNacimiento() +
-                        ", " + estadoVital + ")");
+                        ", " + estadoVital + ") \n");
             });
         }
     }
